@@ -39,7 +39,7 @@ public class MyBusinessService : BaseService
 }
 ```
 
-- Now you are ready to use _repo. **In the Unit Tests project there are very good examples on how to set the Entities, DTOs, mapping expressions and usage of `ProjectedList` and `ProjectedListBuilder`**
+- Now you are ready to use _repo. **In the Unit Tests project there are very good examples on how to setup the Entities, DTOs, mapping expressions and usage of `ProjectedList` and `ProjectedListBuilder`**
 
 ## How to use `ProjectedList` and variants
 
