@@ -20,7 +20,7 @@ InversionRepo wraps your DbContext and provides:
 - the context itself whenever you need it (so we don't have to reivent the wheel and create endless methods to mimic Entity Framework)
 - useful, flexible and performant methods to select data directly to your DTOs using the power of reusable **Expressions** - thanks Ben Cull for the [inspiration.](https://benjii.me/2018/01/expression-projection-magic-entity-framework-core/)
 
-## How to use
+## How to setup
 While this is still not a NuGet package:
 - Copy the InversionRepo project into your project (leave the unit tests out if you want)
 - Assumption: you already added a DbContext to your Web project
@@ -39,8 +39,16 @@ public class MyBusinessService : BaseService
 }
 ```
 - Now you are ready to use _repo. My favourite methods are:
- - `ProjectedList`
- - `ProjectedListBuilder`
- - `ProjectedGetById`
+    - `ProjectedList`
+    - `ProjectedListBuilder`
+    - `ProjectedGetById`
 - I know...I should explain it better. For now, while the documentation is not finished yet, please feel free to look into the code and check how it works (Pretty much `Repository.cs` and `ListRequestBuilder.cs`).
 -  **In the Unit Tests project there are very good examples on how to set the Entities, DTOs, mapping expressions and usage of `ProjectedList` and `ProjectedListBuilder`**
+
+## How to use `ProjectedList` and variants
+Let's say your API caller requested an Order by id:
+```
+client.getOrderById(42) // pseudo-code here
+```
+continues...
+
