@@ -39,12 +39,7 @@ public class MyBusinessService : BaseService
 }
 ```
 
-- Now you are ready to use _repo. My favourite methods are:
-    - `ProjectedList`
-    - `ProjectedListBuilder`
-    - `ProjectedGetById`
-- I know...I should explain it better. For now, while the documentation is not finished yet, please feel free to look into the code and check how it works (Pretty much `Repository.cs` and `ListRequestBuilder.cs`).
--  **In the Unit Tests project there are very good examples on how to set the Entities, DTOs, mapping expressions and usage of `ProjectedList` and `ProjectedListBuilder`**
+- Now you are ready to use _repo. **In the Unit Tests project there are very good examples on how to set the Entities, DTOs, mapping expressions and usage of `ProjectedList` and `ProjectedListBuilder`**
 
 ## How to use `ProjectedList` and variants
 
