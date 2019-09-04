@@ -46,9 +46,120 @@ public class MyBusinessService : BaseService
 -  **In the Unit Tests project there are very good examples on how to set the Entities, DTOs, mapping expressions and usage of `ProjectedList` and `ProjectedListBuilder`**
 
 ## How to use `ProjectedList` and variants
+
+### ProjectedGetById
 Let's say your API caller requested an Order by id:
 ```
 client.getOrderById(42) // pseudo-code here
 ```
-continues...
+If you are being a good boy, you want to return a DTO to your caller (instead of exposing your data model and probably giving unnecessary data). So that's how your method will look like (for the sake of this example there are no layer separations):
+```
+async public Task<OrderDto> Get(int orderId)
+{
+    return await _repo.ProjectedGetById(orderId, OrderDto.ProjectionFromEntity());
+}
+```
+And that's it. But how `ProjectedGetById` knows what table to select data from, what is the Dto type, and how to map the fields? All of this in inferred from `OrderDto.ProjectionFromEntity()`. So now I'm gonna show you my OrderDto:
+```
+public class OrderDto
+{
+    public int Id { get; set; }
+    public int? CustomerId { get; set; }
+    public string CustomerName { get; set; }
+    public string FullDeliveryAdressWithCountry { get; set; }
+    public List<OrderItemDto> Items { get; private set; } = new List<OrderItemDto>();
+    public bool HasItemsWithPriceOver100 { get; set; }
+
+    internal static Expression<Func<Order, OrderDto>> ProjectionFromEntity()
+    {
+        return entity => new OrderDto()
+        {
+            Id = entity.Id,
+            CustomerId = entity.CustomerId,
+            CustomerName = entity.Customer.Name,
+            FullDeliveryAdressWithCountry = entity.DeliveryAddress.FullAdress + ", country: " + entity.DeliveryAddress.Country,
+            Items = entity.Items.AsQueryable().Select(OrderItemDto.ProjectionFromEntity()).ToList(),
+            HasItemsWithPriceOver100 = Order.HasItemsOverPrice(entity, 100),
+        };
+    }
+}
+```
+Alright. The `ProjectionFromEntity` method returns an [**expression**](https://benjii.me/2018/01/expression-projection-magic-entity-framework-core/) that takes in a `Order` object (that's how it knows which table to select data from) and spits out a `OrderDto` object, with the mapping you see above. By the way, this mapping is:
+- totally reusable
+- very performant, as Entity Framework only selects the fields that are explicitly mentioned in the expression
+- composable - you can refer to sub-projections indefinitely (as in `Items` and `HasItemsWithPriceOver100` property assignments), and Entity Framework will only select the data you mentioned.
+Just to give you the full picture, the Order class:
+```
+public partial class Order : BaseEntity
+{
+    public int? CustomerId { get; set; }
+    public Customer Customer { get; set; }
+    public int DeliveryAddressId { get; set; }
+    public Address DeliveryAddress { get; set; }
+    public ICollection<OrderItem> Items { get; private set; } = new HashSet<OrderItem>();
+}
+```
+And the other partial of Order:
+```
+public partial class Order
+{
+    /// <summary>
+    /// this combination between HasItemsOverPrice and HasItemsOverPriceProjection 
+    /// enable us to use this expression inside EF expressions to select data
+    /// and EF will interpret this expression in a way that it only selects
+    /// the fields mentioned in it. It means it won't load the entire Order entity
+    /// </summary>
+    /// <param name="entity">the Order entity</param>
+    /// <param name="price">price to be compared with</param>
+    /// <returns></returns>
+    [ReplaceWithExpression(MethodName = nameof(HasItemsOverPriceProjection))]
+    static public bool HasItemsOverPrice(Order entity, decimal price) => 
+        HasItemsOverPriceProjection().Compile().Invoke(entity, price);
+    static Expression<Func<Order, decimal, bool>> HasItemsOverPriceProjection() =>
+        (entity, price) => entity.Items.Any(i => i.Price > price);
+}
+```
+This is another nice surprise (some will find it ugly, totally understandable). It relies on a modified version of LinqKit's `AsExpandable`. You can learn more about it [**here**](https://benjii.me/2018/01/expression-projection-magic-entity-framework-core/). Long story short: the method `HasItemsOverPrice` can be called **inside** a projection, and it won't make Entity Framework load the entire database (ok a bit of drama here). It will respect the expression tree and only select the data that is mentioned in that sub-expression. It makes entity business rules much easier to be reused across normal code and expression code (if you can get past the ugly sintax - but you don't need to use this part of the library if you don't want).
+
+Ok, now going back a bit to `OrderDto.ProjectionFromEntity`:
+```
+Items = entity.Items.AsQueryable().Select(OrderItemDto.ProjectionFromEntity()).ToList(),
+```
+Let's check `OrderItemDto` out?
+```
+public class OrderItemDto
+{
+    public int Id { get; set; }
+    public int ProductId { get; set; }
+    public string ProductName { get; set; }
+    public decimal ProductQuantityInStock { get; set; }
+    public List<ProductDiscountDto> Discounts { get; set; }
+    public decimal Quantity { get; set; }
+    public decimal Price { get; set; }
+
+    public static Expression<Func<OrderItem, OrderItemDto>> ProjectionFromEntity()
+    {
+        return entity => new OrderItemDto()
+        {
+            Id = entity.Id,
+            ProductId = entity.ProductId,
+            ProductName = entity.Product.Name,
+            ProductQuantityInStock = entity.Product.QuantityInStock,
+            Quantity = entity.Quantity,
+            Price = entity.Price,
+            Discounts = entity.Product.Discounts.AsQueryable().Select(ProductDiscountDto.ProjectionFromEntity()).ToList(),
+        };
+    }
+}
+```
+As I promised, reusable and composable mappings. Not only OrderItemDto`s expression is being used inside OrderDto's expression, but it is also calling ProductDiscountDto's one, further down a level.
+
+I think, by now, if you did your homework, you realized how powerful this whole concept can be.
+
+## How to access DbContext
+That's really simple:
+```
+_repo.Context;
+```
+Full context access - because I trust you as a developer (do not mess this up ok?)
 
