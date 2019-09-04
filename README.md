@@ -38,6 +38,7 @@ public class MyBusinessService : BaseService
     ...
 }
 ```
+
 - Now you are ready to use _repo. My favourite methods are:
     - `ProjectedList`
     - `ProjectedListBuilder`
@@ -52,6 +53,7 @@ Let's say your API caller requested an Order by id:
 ```
 client.getOrderById(42) // pseudo-code here
 ```
+
 If you are being a good boy, you want to return a DTO to your caller (instead of exposing your data model and probably giving unnecessary data). So that's how your method will look like (for the sake of this example there are no layer separations):
 ```
 async public Task<OrderDto> Get(int orderId)
@@ -59,6 +61,7 @@ async public Task<OrderDto> Get(int orderId)
     return await _repo.ProjectedGetById(orderId, OrderDto.ProjectionFromEntity());
 }
 ```
+
 And that's it. But how `ProjectedGetById` knows what table to select data from, what is the Dto type, and how to map the fields? All of this in inferred from `OrderDto.ProjectionFromEntity()`. So now I'm gonna show you my OrderDto:
 ```
 public class OrderDto
@@ -84,6 +87,7 @@ public class OrderDto
     }
 }
 ```
+
 Alright. The `ProjectionFromEntity` method returns an [**expression**](https://benjii.me/2018/01/expression-projection-magic-entity-framework-core/) that takes in a `Order` object (that's how it knows which table to select data from) and spits out a `OrderDto` object, with the mapping you see above. By the way, this mapping is:
 - totally reusable
 - very performant, as Entity Framework only selects the fields that are explicitly mentioned in the expression
@@ -99,6 +103,7 @@ public partial class Order : BaseEntity
     public ICollection<OrderItem> Items { get; private set; } = new HashSet<OrderItem>();
 }
 ```
+
 And the other partial of Order:
 ```
 public partial class Order
@@ -119,12 +124,14 @@ public partial class Order
         (entity, price) => entity.Items.Any(i => i.Price > price);
 }
 ```
+
 This is another nice surprise (some will find it ugly, totally understandable). It relies on a modified version of LinqKit's `AsExpandable`. You can learn more about it [**here**](https://benjii.me/2018/01/expression-projection-magic-entity-framework-core/). Long story short: the method `HasItemsOverPrice` can be called **inside** a projection, and it won't make Entity Framework load the entire database (ok a bit of drama here). It will respect the expression tree and only select the data that is mentioned in that sub-expression. It makes entity business rules much easier to be reused across normal code and expression code (if you can get past the ugly sintax - but you don't need to use this part of the library if you don't want).
 
 Ok, now going back a bit to `OrderDto.ProjectionFromEntity`:
 ```
 Items = entity.Items.AsQueryable().Select(OrderItemDto.ProjectionFromEntity()).ToList(),
 ```
+
 Let's check `OrderItemDto` out?
 ```
 public class OrderItemDto
@@ -152,6 +159,7 @@ public class OrderItemDto
     }
 }
 ```
+
 As I promised, reusable and composable mappings. Not only OrderItemDto`s expression is being used inside OrderDto's expression, but it is also calling ProductDiscountDto's one, further down a level.
 
 I think, by now, if you did your homework, you realized how powerful this whole concept can be.
@@ -163,6 +171,7 @@ var ordersWithPriceAbove90 = await _repo.ProjectedList(OrderDto.ProjectionFromEn
 var ordersWithAtLeastOneProductWithMoreThan10PercentOfDiscount = 
     await _repo.ProjectedList(OrderDto.ProjectionFromEntity(), o => o.Items.Any(i => i.Product.Discounts.Any(d => d.DiscountFactor > 0.10M)));
 ```
+
 
 ### ProjectedListBuilder
 This is for the more complex cases where you need a bit more flexibility. Let's say the client is requesting a paginated list:
@@ -178,6 +187,7 @@ const searchTerm = 'blablabla'
 const minimumPrice = 90
 client.getOrdersList(searchTerm, minimumPrice, listRequest) // if this doesn't look like an API call to you, you gotta start using NSwagStudio right now
 ```
+
 My API method will be something like (probably your DTO for list situations should be different, but you get the idea):
 ```
 async public Task<OrderListResponse> Get(string searchTerm, decimal? minimumPrice, ListRequest listRequest)
@@ -204,11 +214,13 @@ async public Task<OrderListResponse> Get(string searchTerm, decimal? minimumPric
 }
 ```
 
+
 ## How to access DbContext
 That's really simple:
 ```
 _repo.Context;
 ```
+
 Full context access - because I trust you as a developer (do not mess this up ok?)
 
 ## Other Cases
