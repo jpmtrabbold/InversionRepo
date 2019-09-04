@@ -170,7 +170,7 @@ var ordersWithAtLeastOneProductWithMoreThan10PercentOfDiscount =
     await _repo.ProjectedList(
     OrderDto.ProjectionFromEntity(), 
     o => o.Items.Any(i => i.Product.Discounts.Any(d => d.DiscountFactor > 0.10M)));
-    
+
 ```
 
 
@@ -230,4 +230,4 @@ The repo also provides helper methods for the most common situations (which also
 - `_repo.GetById<Order>(23)` - gets the EF tracked `entity` of Order with id 23, so you can update it and save it back to the database with `_repo.SaveEntity(entity)`
 - `_repo.Get<Order>(o => o.CustomerId = 2)` - same as GetById, but using a where predicate
 - `_repo.Remove(entity)` - self-explanatory, and then you have to call `_repo.SaveEntity(entity)` to commit
-- `_repo.LoadCollection()` and `_repo.LoadReference()` for loading sub-entities
+- `_repo.LoadCollection()` and `_repo.LoadReference()` for loading sub-entities (in EF Tracked situations...for projections you should use the ProjectedGet variants)
