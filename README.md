@@ -156,6 +156,54 @@ As I promised, reusable and composable mappings. Not only OrderItemDto`s express
 
 I think, by now, if you did your homework, you realized how powerful this whole concept can be.
 
+### ProjectedGet
+This uses pretty much the same concept, but you can pass on a `where` predicate instead of an id. Some examples:
+```
+var ordersWithPriceAbove90 = await _repo.ProjectedList(OrderDto.ProjectionFromEntity(), o => Order.HasItemsOverPrice(o, 90));
+var ordersWithAtLeastOneProductWithMoreThan10PercentOfDiscount = 
+    await _repo.ProjectedList(OrderDto.ProjectionFromEntity(), o => o.Items.Any(i => i.Product.Discounts.Any(d => d.DiscountFactor > 0.10M)));
+```
+
+### ProjectedListBuilder
+This is for the more complex cases where you need a bit more flexibility. Let's say the client is requesting a paginated list:
+```
+//pseudo-code again (actually javascript haha)
+const listRequest = {
+    pageSize: 10
+    pageNumber: 2
+    sortField: 'customerName'
+    sortOrderAscending: true
+}
+const searchTerm = 'blablabla'
+const minimumPrice = 90
+client.getOrdersList(searchTerm, minimumPrice, listRequest) // if this doesn't look like an API call to you, you gotta start using NSwagStudio right now
+```
+My API method will be something like (probably your DTO for list situations should be different, but you get the idea):
+```
+async public Task<OrderListResponse> Get(string searchTerm, decimal? minimumPrice, ListRequest listRequest)
+{
+    var builder = _repo.ProjectedListBuilder(OrderDto.ProjectionFromEntity(), listRequest)
+        .OrderByDescending(d => d.Id)
+        .ConditionalOrder("customerName", d => d.Customer.Name)
+    
+    if (!string.IsNullOrWhiteSpace(searchTerm))
+    {
+        builder.Where(d => d.Customer.Name.Contains(searchTerm));
+    }
+
+    if (minimumPrice.HasValue)
+    {
+        builder.Where(d => Order.HasItemsOverPrice(d, minimumPrice)); // see how it is reusable? Up to you if the convenience outweighs the ugly sintax)
+    }
+
+    return new OrderListResponse
+    {
+        Orders = await builder.ExecuteAsync(), // List<OrderDto>
+        TotalRecords = await builder.CountAsync() // int
+    };
+}
+```
+
 ## How to access DbContext
 That's really simple:
 ```
@@ -163,3 +211,10 @@ _repo.Context;
 ```
 Full context access - because I trust you as a developer (do not mess this up ok?)
 
+## Other Cases
+The repo also provides helper methods for the most common situations (which also could be addressed directly through the use of _repo.Context whenever these are not enough):
+- `_repo.Set<Order>()` - gives the DbContext Set for that type
+- `_repo.GetById<Order>(23)` - gets the EF tracked `entity` of Order with id 23, so you can update it and save it back to the database with `_repo.SaveEntity(entity)`
+- `_repo.Get<Order>(o => o.CustomerId = 2)` - same as GetById, but using a where predicate
+- `_repo.Remove(entity)` - self-explanatory, and then you have to call `_repo.SaveEntity(entity)` to commit
+- `_repo.LoadCollection()` and `_repo.LoadReference()` for loading sub-entities

@@ -2,6 +2,7 @@ using InversionRepo.Interfaces;
 using InversionRepo.UnitTests.Dtos;
 using InversionRepo.UnitTests.Entities;
 using Microsoft.EntityFrameworkCore;
+using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
 
