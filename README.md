@@ -1,5 +1,5 @@
 # InversionRepo
-A generic repository for EntityFrameworkCore - **but** flexible and performant
+A generic repository for EntityFrameworkCore - **but** flexible and performant (for a generic repo)
 
 ## Dependencies
 - .NET Core
