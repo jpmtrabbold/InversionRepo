@@ -1,0 +1,10 @@
+src/.vs/
+src/.vs/*
+src/InversionRepo/obj/
+src/InversionRepo/obj/*
+src/InversionRepo/bin/
+src/InversionRepo/bin/*
+src/InversionRepo.UnitTests/obj/
+src/InversionRepo.UnitTests/obj/*
+src/InversionRepo.UnitTests/bin/
+src/InversionRepo.UnitTests/bin/*
