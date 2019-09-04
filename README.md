@@ -6,7 +6,7 @@ A generic repository for EntityFrameworkCore - **but** flexible and performant (
 - EntityFrameworkCore 2.2.6
 
 ## The Problem
-I had to take on a new project for building a Web Application and, as always ,I had my 'Analysis paralysis' moment while deciding which data access pattern I would use.
+I had to take on a new project for building a Web Application and, as always, I had my 'Analysis paralysis' moment while deciding which data access pattern I would use.
 The usual opinions are:
 1- your business layer shouldn't touch your context (because developers are dumb?), so you should protect it with your life (through a repo layer)
 2- EF is, in itself, a data access abstraction, so it's all good for your business layer to use your context
