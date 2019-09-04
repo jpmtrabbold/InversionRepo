@@ -162,9 +162,15 @@ I think, by now, if you did your homework, you realized how powerful this whole 
 ### ProjectedGet
 This uses pretty much the same concept, but you can pass on a `where` predicate instead of an id. Some examples:
 ```
-var ordersWithPriceAbove90 = await _repo.ProjectedList(OrderDto.ProjectionFromEntity(), o => Order.HasItemsOverPrice(o, 90));
+var ordersWithPriceAbove90 = await _repo.ProjectedList(
+    OrderDto.ProjectionFromEntity(), 
+    o => Order.HasItemsOverPrice(o, 90));
+
 var ordersWithAtLeastOneProductWithMoreThan10PercentOfDiscount = 
-    await _repo.ProjectedList(OrderDto.ProjectionFromEntity(), o => o.Items.Any(i => i.Product.Discounts.Any(d => d.DiscountFactor > 0.10M)));
+    await _repo.ProjectedList(
+    OrderDto.ProjectionFromEntity(), 
+    o => o.Items.Any(i => i.Product.Discounts.Any(d => d.DiscountFactor > 0.10M)));
+    
 ```
 
 
