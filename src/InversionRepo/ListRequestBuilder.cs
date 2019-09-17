@@ -52,26 +52,24 @@ namespace InversionRepo
 
             return this;
         }
-        IQueryable<TEntity> createQuery()
+        IQueryable<TEntity> CreateQuery()
         {
             if (Query == null)
             {
                 Query = Context.Set<TEntity>()
-                    .AsNoTracking()
-                    .AsExpandable()
                     .Include(Context.GetIncludePaths(typeof(TEntity)));
 
                 foreach (var predicate in Predicates)
                 {
                     Query = Query.Where(predicate);
-                }   
+                }
             }
             return Query;
         }
 
         public IQueryable<TEntity> BuildQuery()
         {
-            var query = createQuery();
+            var query = CreateQuery();
 
             foreach (var orderExpression in orderExpressions)
                 query = (orderExpression.ascending ? query.OrderBy(orderExpression.expression) : query.OrderByDescending(orderExpression.expression));
@@ -99,14 +97,14 @@ namespace InversionRepo
         {
             var query = BuildQuery();
 
-            return await query.Select(Projection).ToListAsync();
+            return await query.AsNoTracking().AsExpandable().Select(Projection).ToListAsync();
         }
 
         public async Task<int> CountAsync()
         {
-            var query = createQuery();
+            var query = CreateQuery();
 
-            return await query.CountAsync();
+            return await query.AsNoTracking().AsExpandable().CountAsync();
         }
 
         public async Task<TProjectedEntity> FirstOrDefaultAsync(Expression<Func<TProjectedEntity, bool>> predicate = null)
@@ -114,9 +112,9 @@ namespace InversionRepo
             var query = BuildQuery();
 
             if (predicate == null)
-                return await query.Select(Projection).FirstOrDefaultAsync();
+                return await query.AsNoTracking().AsExpandable().Select(Projection).FirstOrDefaultAsync();
             else
-                return await query.Select(Projection).FirstOrDefaultAsync(predicate);
+                return await query.AsNoTracking().AsExpandable().Select(Projection).FirstOrDefaultAsync(predicate);
         }
     }
 }

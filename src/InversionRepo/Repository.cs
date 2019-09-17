@@ -35,21 +35,21 @@ namespace InversionRepo
             requestBuilder.Projection = projection;
             requestBuilder.Context = _context;
             return requestBuilder;
-            
+
         }
 
         public async Task<List<TProjectedEntity>> ProjectedList<TEntity, TProjectedEntity>(Expression<Func<TEntity, TProjectedEntity>> projection, Expression<Func<TEntity, bool>> predicate = null)
             where TEntity : class, IEntity
         {
             var query = Context.Set<TEntity>()
-                .AsNoTracking()
-                .AsExpandable()
                 .Include(Context.GetIncludePaths(typeof(TEntity))); // when working with projections, even though we included every possible include path, EF only retrieves those that are mentioned in the projection expression
 
             if (predicate != null)
                 query = query.Where(predicate);
 
             return await query
+                .AsNoTracking()
+                .AsExpandable()
                 .Select(projection)
                 .ToListAsync();
         }
@@ -59,17 +59,17 @@ namespace InversionRepo
         {
             if (!id.HasValue || id == 0)
                 return default;
-           
+
             return await Context.Set<TEntity>()
-                .AsNoTracking()
-                .AsExpandable()
                 .Include(Context.GetIncludePaths(typeof(TEntity))) // when working with projections, even though we included every possible include path, EF only retrieves those that are mentioned in the projection expression
                 .Where(e => e.Id == id.Value)
+                .AsNoTracking()
+                .AsExpandable()
                 .Select(projection)
                 .SingleAsync();
         }
 
-        public DbSet<T> Set<T>() where T: class, IEntity
+        public DbSet<T> Set<T>() where T : class, IEntity
         {
             return Context.Set<T>();
         }
@@ -91,7 +91,7 @@ namespace InversionRepo
         {
             if (entity.Id == 0)
                 _context.Add(entity);
-            
+
             await _context.SaveChangesAsync();
         }
 
