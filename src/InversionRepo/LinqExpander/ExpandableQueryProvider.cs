@@ -54,22 +54,19 @@ namespace LinqExpander
 			return _underlyingQueryProvider.Execute(Visit(expression));
 		}
 
-	    public IAsyncEnumerable<TResult> ExecuteAsync<TResult>(Expression expression)
-	    {
-	        return ((IAsyncQueryProvider)_underlyingQueryProvider).ExecuteAsync<TResult>(Visit(expression));
-	    }
 
-	    public Task<TResult> ExecuteAsync<TResult>(Expression expression, CancellationToken cancellationToken)
-	    {
-	        return ((IAsyncQueryProvider)_underlyingQueryProvider).ExecuteAsync<TResult>(Visit(expression), cancellationToken);
-	    }
-
-	    private Expression Visit(Expression exp)
+        private Expression Visit(Expression exp)
 	    {
 	        ExpandableVisitor vstr = new ExpandableVisitor(_underlyingQueryProvider);
 	        Expression visitedExp = vstr.Visit(exp);
 
 	        return visitedExp;
 	    }
+
+        [System.Diagnostics.CodeAnalysis.SuppressMessage("Usage", "EF1001:Internal EF Core API usage.", Justification = "<Pending>")]
+        TResult IAsyncQueryProvider.ExecuteAsync<TResult>(Expression expression, CancellationToken cancellationToken)
+        {
+            return ((IAsyncQueryProvider)_underlyingQueryProvider).ExecuteAsync<TResult>(Visit(expression)); //ExecuteAsync<TResult>(Visit(expression));
+        }
     }
 }

@@ -19,7 +19,7 @@ namespace InversionRepo.UnitTests.Entities
         /// <param name="price">price to be compared with</param>
         /// <returns></returns>
         [ReplaceWithExpression(MethodName = nameof(HasItemsOverPriceProjection))]
-        static public bool HasItemsOverPrice(Order entity, decimal price) => 
+        static public bool HasItemsOverPrice(Order entity, decimal price) =>
             HasItemsOverPriceProjection().Compile().Invoke(entity, price);
         static Expression<Func<Order, decimal, bool>> HasItemsOverPriceProjection() =>
             (entity, price) => entity.Items.Any(i => i.Price > price);

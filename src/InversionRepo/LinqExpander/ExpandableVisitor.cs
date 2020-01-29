@@ -16,48 +16,49 @@ namespace LinqExpander
 			_provider = provider;
 		}
 
-		protected override Expression VisitMethodCall(MethodCallExpression node)
-		{
-			bool expandNode = node.Method.GetCustomAttributes(typeof(ExpandQueryableAttribute), false).Any();
-			if (expandNode && node.Method.IsStatic)
-			{
-				object[] args = new object[node.Arguments.Count];
-				args[0] = _provider.CreateQuery(node.Arguments[0]);
+        protected override Expression VisitMethodCall(MethodCallExpression node)
+        {
+            bool expandNode = node.Method.GetCustomAttributes(typeof(ExpandQueryableAttribute), false).Any();
+            if (expandNode && node.Method.IsStatic)
+            {
+                object[] args = new object[node.Arguments.Count];
+                args[0] = _provider.CreateQuery(node.Arguments[0]);
 
-				for (int i = 1; i < node.Arguments.Count; i++)
-				{
-					Expression arg = node.Arguments[i];
-					args[i] = (arg.NodeType == ExpressionType.Constant) ? ((ConstantExpression)arg).Value : arg;
-				}
-				return Visit(((IQueryable)node.Method.Invoke(null, args)).Expression);
-			}
-			var replaceNodeAttribute = node.Method.GetCustomAttributes(typeof(ReplaceWithExpressionAttribute), false).Cast<ReplaceWithExpressionAttribute>().FirstOrDefault();
+                for (int i = 1; i < node.Arguments.Count; i++)
+                {
+                    Expression arg = node.Arguments[i];
+                    args[i] = (arg.NodeType == ExpressionType.Constant) ? ((ConstantExpression)arg).Value : arg;
+                }
+                return Visit(((IQueryable)node.Method.Invoke(null, args)).Expression);
+            }
+            var replaceNodeAttribute = node.Method.GetCustomAttributes(typeof(ReplaceWithExpressionAttribute), false).Cast<ReplaceWithExpressionAttribute>().FirstOrDefault();
             if (replaceNodeAttribute != null && node.Method.IsStatic)
             {
-			    if (!string.IsNullOrEmpty(replaceNodeAttribute.MethodName))
-			    {
-			        var methods = node.Method.DeclaringType.GetRuntimeMethods();
-			        var replaceWith = methods.First(x => x.Name == replaceNodeAttribute.MethodName).Invoke(null, null);
-			        if (replaceWith is LambdaExpression)
-			        {
-			            RegisterReplacementParameters(node.Arguments.ToArray(), replaceWith as LambdaExpression);
-			            return Visit((replaceWith as LambdaExpression).Body);
-			        }
-			    }
-			    if (!string.IsNullOrEmpty(replaceNodeAttribute.PropertyName))
-			    {
-			        var properties = node.Method.DeclaringType.GetRuntimeProperties();
-			        var replaceWith = properties.First(x => x.Name == replaceNodeAttribute.PropertyName).GetValue(null);
-			        if (replaceWith is LambdaExpression)
-			        {
-			            RegisterReplacementParameters(node.Arguments.ToArray(), replaceWith as LambdaExpression);
-			            return Visit((replaceWith as LambdaExpression).Body);
-			        }
+                if (!string.IsNullOrEmpty(replaceNodeAttribute.MethodName))
+                {
+                    var methods = node.Method.DeclaringType.GetRuntimeMethods();
+                    var replaceWith = methods.First(x => x.Name == replaceNodeAttribute.MethodName).Invoke(null, null);
+                    if (replaceWith is LambdaExpression replaceWithLambda)
+                    {
+                        //replaceWithLambda.NodeType;
+                        RegisterReplacementParameters(node.Arguments.ToArray(), replaceWith as LambdaExpression);
+                        return Visit(replaceWithLambda.Body);
+                    }
+                }
+                if (!string.IsNullOrEmpty(replaceNodeAttribute.PropertyName))
+                {
+                    var properties = node.Method.DeclaringType.GetRuntimeProperties();
+                    var replaceWith = properties.First(x => x.Name == replaceNodeAttribute.PropertyName).GetValue(null);
+                    if (replaceWith is LambdaExpression)
+                    {
+                        RegisterReplacementParameters(node.Arguments.ToArray(), replaceWith as LambdaExpression);
+                        return Visit((replaceWith as LambdaExpression).Body);
+                    }
                 }
             }
-			return base.VisitMethodCall(node);
-		}
-		protected override Expression VisitParameter(ParameterExpression node)
+            return base.VisitMethodCall(node);
+        }
+        protected override Expression VisitParameter(ParameterExpression node)
 		{
 			Expression replacement;
 			if (_replacements.TryGetValue(node, out replacement))

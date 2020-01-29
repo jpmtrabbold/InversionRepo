@@ -25,10 +25,13 @@ namespace InversionRepo.UnitTests
             _repo = new Repository<SalesAppContext>(context);
         }
 
+        
         [Fact]
         public async void ProjectedList()
         {
-            var orders = await _repo.ProjectedList(OrderDto.ProjectionFromEntity(), o => Order.HasItemsOverPrice(o, 90));
+            // this is still being resolved by https://github.com/dotnet/efcore/issues/17620
+            // the error only happens with an in-memory database. With SqlServer is all good
+            var orders = await _repo.ProjectedList(OrderDto.ProjectionFromEntity(), o => Order.HasItemsOverPrice(o, 90));//entity => entity.Items.Any(i => i.Price > 90)); // o => Order.HasItemsOverPrice(o, 90));
             Assert.Equal(54, orders.Count);
 
             Assert.Equal(50, orders[0].Items[0].Quantity);
@@ -39,12 +42,12 @@ namespace InversionRepo.UnitTests
         }
 
         [Theory]
+        [InlineData(10, 0, null, true)]
         [InlineData(10, 1, null, true)]
         [InlineData(10, 2, null, true)]
         [InlineData(10, 3, null, true)]
         [InlineData(10, 4, null, true)]
         [InlineData(10, 5, null, true)]
-        [InlineData(10, 6, null, true)]
         public async Task ProjectedListBuilder(int? pageSize, int? pageNumber, string sortField, bool sortOrderAscending)
         {
             var listRequest = new ListRequest { PageSize = pageSize, PageNumber = pageNumber, SortField = sortField, SortOrderAscending = sortOrderAscending };
@@ -60,7 +63,7 @@ namespace InversionRepo.UnitTests
             var expectedCount = 55;
             Assert.Equal(expectedCount, totalCount);
 
-            if (pageNumber <= 5)
+            if (pageNumber <= 4)
             {
                 Assert.Equal(pageSize, orders.Count);
             }
@@ -71,7 +74,7 @@ namespace InversionRepo.UnitTests
 
             if (sortField == null)
             {
-                var orderId = (pageNumber * pageSize) - pageSize + 1;
+                var orderId = (pageNumber * pageSize) + 1;
                 Assert.Equal($"Address for OrderId {orderId}, country: Brazil", orders[0].FullDeliveryAdressWithCountry);
                 Assert.Equal(orderId, orders[0].Id);
             }
