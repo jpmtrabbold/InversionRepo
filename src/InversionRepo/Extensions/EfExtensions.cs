@@ -61,7 +61,7 @@ namespace InversionRepo.Extensions
                         {
                             foreach (var navigation in entityNavigations)
                             {
-                                var inverseNavigation = navigation.FindInverse();
+                                var inverseNavigation = navigation.Inverse;
                                 if (inverseNavigation != null)
                                     includedNavigations.Add(inverseNavigation);
                             }
@@ -70,7 +70,7 @@ namespace InversionRepo.Extensions
                         while (stack.Count > 0 && !stack.Peek().MoveNext())
                             stack.Pop();
                         if (stack.Count == 0) break;
-                        entityType = stack.Peek().Current.GetTargetType();
+                        entityType = stack.Peek().Current.TargetEntityType;
                     }
                     includePaths.Add(typeName, paths);
                     return paths;

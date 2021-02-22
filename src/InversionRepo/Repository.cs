@@ -4,10 +4,10 @@ using System.Linq.Expressions;
 using System.Threading.Tasks;
 using Microsoft.EntityFrameworkCore;
 using System.Linq;
-using LinqExpander;
 using InversionRepo.Interfaces;
 using InversionRepo.Extensions;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
+using LinqKit;
 
 namespace InversionRepo
 {
@@ -38,20 +38,18 @@ namespace InversionRepo
 
         }
 
-        public async Task<List<TProjectedEntity>> ProjectedList<TEntity, TProjectedEntity>(Expression<Func<TEntity, TProjectedEntity>> projection, Expression<Func<TEntity, bool>> predicate = null)
+        public async Task<List<TProjectedEntity>> ProjectedList<TEntity, TProjectedEntity>(Expression<Func<TEntity, TProjectedEntity>> projection, Expression<Func<TProjectedEntity, bool>> predicate = null)
             where TEntity : class, IEntity
         {
             var query = Context.Set<TEntity>()
-                .Include(Context.GetIncludePaths(typeof(TEntity))); // when working with projections, even though we included every possible include path, EF only retrieves those that are mentioned in the projection expression
+                .AsNoTracking()
+                .AsExpandable()
+                .Select(projection);
 
             if (predicate != null)
                 query = query.Where(predicate);
 
-            return await query
-                .AsNoTracking()
-                .AsExpandable()
-                .Select(projection)
-                .ToListAsync();
+            return await query.ToListAsync();
         }
 
         public async Task<TProjectedEntity> ProjectedGetById<TEntity, TProjectedEntity>(int? id, Expression<Func<TEntity, TProjectedEntity>> projection)
@@ -61,7 +59,6 @@ namespace InversionRepo
                 return default;
 
             return await Context.Set<TEntity>()
-                .Include(Context.GetIncludePaths(typeof(TEntity))) // when working with projections, even though we included every possible include path, EF only retrieves those that are mentioned in the projection expression
                 .Where(e => e.Id == id.Value)
                 .AsNoTracking()
                 .AsExpandable()
@@ -87,12 +84,13 @@ namespace InversionRepo
             return Context.Set<T>().Where(predicate);
         }
 
-        public async Task SaveEntity<T>(T entity) where T : class, IEntity
+        public async Task<T> SaveEntity<T>(T entity) where T : class, IEntity
         {
             if (entity.Id == 0)
                 _context.Add(entity);
 
             await _context.SaveChangesAsync();
+            return entity;
         }
 
         public void Remove<TEntity>(TEntity entity) where TEntity : class
@@ -125,5 +123,27 @@ namespace InversionRepo
             Context.Entry(entity).Reference(propertyExpression).Load();
         }
 
+        public void ResetChanges(List<object> exceptionEntities = default)
+        {
+            foreach (var entry in Context.ChangeTracker.Entries())
+            {
+                if (!exceptionEntities.Any(e => e == entry.Entity))
+                {
+                    switch (entry.State)
+                    {
+                        case EntityState.Modified:
+                            entry.State = EntityState.Unchanged;
+                            break;
+                        case EntityState.Added:
+                            entry.State = EntityState.Detached;
+                            break;
+                        case EntityState.Deleted:
+                            entry.Reload();
+                            break;
+                        default: break;
+                    }
+                }
+            }
+        }
     }
 }

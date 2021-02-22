@@ -1,5 +1,5 @@
 ﻿using InversionRepo.UnitTests.Entities;
-using LinqExpander;
+using LinqKit;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -26,7 +26,7 @@ namespace InversionRepo.UnitTests.Dtos
                 CustomerName = entity.Customer.Name,
                 FullDeliveryAdressWithCountry = entity.DeliveryAddress.FullAdress + ", country: " + entity.DeliveryAddress.Country,
                 Items = entity.Items.AsQueryable().Select(OrderItemDto.ProjectionFromEntity()).ToList(),
-                HasItemsWithPriceOver100 = Order.HasItemsOverPrice(entity, 100),
+                HasItemsWithPriceOver100 = Order.HasItemsOverPrice(100).Invoke(entity),
             };
         }
     }

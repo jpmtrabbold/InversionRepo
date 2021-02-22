@@ -16,7 +16,7 @@ namespace InversionRepo.Interfaces
         IListRequestBuilder<TEntity, TProjectedEntity, TContext> ProjectedListBuilder<TEntity, TProjectedEntity>(Expression<Func<TEntity, TProjectedEntity>> projection, IListRequest listRequest = null)
             where TEntity : class, IEntity;
 
-        Task<List<TProjectedEntity>> ProjectedList<TEntity, TProjectedEntity>(Expression<Func<TEntity, TProjectedEntity>> projection, Expression<Func<TEntity, bool>> predicate = null)
+        Task<List<TProjectedEntity>> ProjectedList<TEntity, TProjectedEntity>(Expression<Func<TEntity, TProjectedEntity>> projection, Expression<Func<TProjectedEntity, bool>> predicate = null)
             where TEntity : class, IEntity;
 
         Task<TProjectedEntity> ProjectedGetById<TEntity, TProjectedEntity>(int? id, Expression<Func<TEntity, TProjectedEntity>> projection)
@@ -26,7 +26,7 @@ namespace InversionRepo.Interfaces
 
         Task<T> GetById<T>(int? id) where T : class, IEntity;
         IQueryable<T> Get<T>(Expression<Func<T, bool>> predicate = null) where T : class, IEntity;
-        Task SaveEntity<T>(T entity) where T : class, IEntity;
+        Task<T> SaveEntity<T>(T entity) where T : class, IEntity;
         void Remove<TEntity>(TEntity entity) where TEntity : class;
         Task<int> Count<TEntity>()
            where TEntity : class, IEntity;
@@ -40,5 +40,8 @@ namespace InversionRepo.Interfaces
         void LoadReference<TEntity, TProperty>(TEntity entity, Expression<Func<TEntity, TProperty>> propertyExpression)
             where TEntity : class
             where TProperty : class;
+
+        void ResetChanges(List<object> exceptionEntities = default);
+
     }
 }

@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using System.Linq;
 using System.Threading.Tasks;
 using Xunit;
+using LinqKit;
 
 namespace InversionRepo.UnitTests
 {
@@ -31,7 +32,10 @@ namespace InversionRepo.UnitTests
         {
             // this is still being resolved by https://github.com/dotnet/efcore/issues/17620
             // the error only happens with an in-memory database. With SqlServer is all good
-            var orders = await _repo.ProjectedList(OrderDto.ProjectionFromEntity(), o => Order.HasItemsOverPrice(o, 90));//entity => entity.Items.Any(i => i.Price > 90)); // o => Order.HasItemsOverPrice(o, 90));
+            var orders = await _repo.ProjectedListBuilder(OrderDto.ProjectionFromEntity())
+                .WhereEntity(o => Order.HasItemsOverPrice(90).Invoke(o))
+                .ExecuteAsync();
+
             Assert.Equal(54, orders.Count);
 
             Assert.Equal(50, orders[0].Items[0].Quantity);
@@ -54,8 +58,8 @@ namespace InversionRepo.UnitTests
 
             var builder = _repo.ProjectedListBuilder(OrderDto.ProjectionFromEntity(), listRequest)
                 .OrderBy(o => o.Id)
-                .ConditionalOrder("customerName", o => o.Customer.Name)
-                .ConditionalOrder("fullAddress", o => o.DeliveryAddress.FullAdress);
+                .ConditionalOrder("customerName", o => o.CustomerName)
+                .ConditionalOrder("fullAddress", o => o.FullDeliveryAdressWithCountry);
 
             var orders = await builder.ExecuteAsync();
             var totalCount = await builder.CountAsync();
